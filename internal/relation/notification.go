@@ -2,6 +2,7 @@ package relation
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/openimsdk/openim-sdk-core/v3/pkg/constant"
@@ -26,6 +27,9 @@ func (r *Relation) doNotification(ctx context.Context, msg *sdkws.MsgData) error
 		if err := utils.UnmarshalNotificationElem(msg.Content, &tips); err != nil {
 			return err
 		}
+		if tips.Request == nil {
+			return errors.New("FriendApplicationNotification request is nil")
+		}
 		r.friendshipListener.OnFriendApplicationAdded(*ServerFriendRequestToLocalFriendRequest(tips.Request))
 	case constant.FriendApplicationApprovedNotification:
 		var tips sdkws.FriendApplicationApprovedTips
@@ -33,14 +37,18 @@ func (r *Relation) doNotification(ctx context.Context, msg *sdkws.MsgData) error
 		if err != nil {
 			return err
 		}
-		if tips.Request != nil {
-			r.friendshipListener.OnFriendApplicationAccepted(*ServerFriendRequestToLocalFriendRequest(tips.Request))
+		if tips.Request == nil {
+			return errors.New("request is nil")
 		}
+		r.friendshipListener.OnFriendApplicationAccepted(*ServerFriendRequestToLocalFriendRequest(tips.Request))
 		return r.IncrSyncFriends(ctx)
 	case constant.FriendApplicationRejectedNotification:
 		var tips sdkws.FriendApplicationRejectedTips
 		if err := utils.UnmarshalNotificationElem(msg.Content, &tips); err != nil {
 			return err
+		}
+		if tips.Request == nil {
+			return errors.New("FriendApplicationRejectedNotification request is nil")
 		}
 		r.friendshipListener.OnFriendApplicationRejected(*ServerFriendRequestToLocalFriendRequest(tips.Request))
 	case constant.FriendAddedNotification:

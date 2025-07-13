@@ -146,8 +146,12 @@ func call_(operationID string, fn any, args ...any) (res any, err error) {
 			switch inFnField.Kind() {
 			case reflect.Struct, reflect.Slice, reflect.Array, reflect.Map:
 				v := reflect.New(inFnField)
+				if args[i] == nil || args[i].(string) == "" {
+					ins = append(ins, v)
+					continue
+				}
 				if err := json.Unmarshal([]byte(args[i].(string)), v.Interface()); err != nil {
-					return nil, sdkerrs.ErrSdkInternal.WrapMsg(fmt.Sprintf("go call json.Unmarshal error: %s", err))
+					return nil, sdkerrs.ErrSdkInternal.WrapMsg(fmt.Sprintf("go call json.Unmarshal error: %s,value:%s", err, args[i]))
 				}
 				if ptr == 0 {
 					v = v.Elem()
@@ -227,6 +231,9 @@ func call(callback open_im_sdk_callback.Base, operationID string, fn any, args .
 			} else {
 				callback.OnError(sdkerrs.UnknownCode, fmt.Sprintf("error %T not implement CodeError: %s", err, err))
 			}
+			return
+		}
+		if res == nil {
 			return
 		}
 		data, err := json.Marshal(res)
